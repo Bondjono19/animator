@@ -2,6 +2,7 @@
 #include <FL/gl.h>
 #include <GL/glu.h>
 #include <cstdio>
+#include <unordered_map>
 
 // ********************************************************
 // Support functions from previous version of modeler
@@ -377,6 +378,46 @@ void drawCylinder( double h, double r1, double r2 )
     }
     
 }
+
+void drawStar(double triangleHeight, double triangleBaseLen) {
+    drawPyramid(triangleHeight,triangleBaseLen);
+    glPushMatrix();
+    glRotated(90, 1, 0, 0);
+    glTranslated(0, triangleBaseLen, triangleBaseLen);
+    drawPyramid(triangleHeight, triangleBaseLen);
+    glPopMatrix();
+    glPushMatrix();
+    glRotated(180, 1, 0, 0);
+    glTranslated(0, triangleBaseLen*2, 0);
+    drawPyramid(triangleHeight, triangleBaseLen);
+    glPopMatrix();
+    glPushMatrix();
+    glRotated(-90, 1, 0, 0);
+    glTranslated(0, triangleBaseLen,-triangleBaseLen);
+    drawPyramid(triangleHeight, triangleBaseLen);
+    glPopMatrix();
+    glPushMatrix();
+    glRotated(-90, 0, 0, 1);
+    glTranslated(triangleBaseLen, triangleBaseLen, 0);
+    drawPyramid(triangleHeight, triangleBaseLen);
+    glPopMatrix();
+    glPushMatrix();
+    glRotated(90, 0, 0, 1);
+    glTranslated(-triangleBaseLen, triangleBaseLen, 0);
+    drawPyramid(triangleHeight, triangleBaseLen);
+    glPopMatrix();
+}
+
+void drawPyramid(double len,double base){
+    double topX = 0;
+    double topY = 0;
+    double topZ = 0;
+    drawTriangle(topX, topY+len, topZ,topX-base,topY,topZ-base,topX+base,topY,topZ-base);
+    drawTriangle(topX, topY+len, topZ, topX - base, topY, topZ - base, topX - base, topY, topZ + base);
+    drawTriangle(topX, topY+len, topZ, topX + base, topY, topZ - base, topX + base, topY, topZ + base);
+    drawTriangle(topX, topY+len, topZ,topX- base,topY,topZ+ base,topX+ base,topY,topZ+ base);
+}
+
 void drawTriangle( double x1, double y1, double z1,
                    double x2, double y2, double z2,
                    double x3, double y3, double z3 )
@@ -413,4 +454,51 @@ void drawTriangle( double x1, double y1, double z1,
         glVertex3d( x3, y3, z3 );
         glEnd();
     }
+}
+
+// string to string map os L-system rules
+std::unordered_map<std::string, std::string> LSystemRules = {
+    {"X", "F+[[X]-X]-F[-FX]+X"},
+    {"F", "FF"}
+};
+
+std::string LSystemStep(std::string current) {
+    std::string next = "";
+    for (int i = 0; i < current.size(); ++i) {
+        std::string str(1, current[i]);
+        if (LSystemRules.find(str) != LSystemRules.end()) {
+            next += LSystemRules[str];
+        } else {
+            next += str;
+        }
+    }
+    return next;
+}
+
+void drawLSystem(std::string sentence, int angle) {
+    glPushMatrix();
+    for (char c : sentence) {
+        switch (c) {
+            case 'F':
+                drawCylinder(0.1, 0.01, 0.01);
+                glTranslated(0.0f, 0.0f, 0.1f);
+                break;
+            case '+':
+                glRotated(angle, 0.0, 1.0, 0.0);
+                break;
+            case '-':
+                glRotated(-angle, 0.0, 1.0, 0.0);
+                break;
+            case '[':
+                glPushMatrix();
+                break;
+            case ']':
+                glPopMatrix();
+                break;
+            default:
+                break;
+        }
+    }
+    glPopMatrix();
+
 }

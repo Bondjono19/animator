@@ -7,6 +7,7 @@
 
 #include <FL/gl.h>
 #include <cstdio>
+#include <string>
 
 
 enum DrawModeSetting_t 
@@ -91,5 +92,20 @@ void drawCylinder( double h, double r1, double r2 );
 void drawTriangle( double x1, double y1, double z1,
 			       double x2, double y2, double z2,
 			       double x3, double y3, double z3 );
+
+
+// Driangle with three given vertices.  Specify in counterclockwise direction
+void drawTriangle( double x1, double y1, double z1,
+			       double x2, double y2, double z2,
+			       double x3, double y3, double z3 );
+void drawStar(double radius, double base);
+
+std::string LSystemStep(std::string current); 
+void drawLSystem(std::string sentence, int angle);
+
+std::string LSystemStep(std::string current); 
+void drawLSystem(std::string sentence, int angle);
+
+void drawPyramid(double len,double baseLen);
 
 #endif
