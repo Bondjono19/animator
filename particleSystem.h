@@ -17,7 +17,7 @@
 #define __PARTICLE_SYSTEM_H__
 
 #include "vec.h"
-
+#include <vector>
 
 
 class ParticleSystem {
@@ -71,6 +71,8 @@ public:
 	bool isSimulate() { return simulate; }
 	bool isDirty() { return dirty; }
 	void setDirty(bool d) { dirty = d; }
+	void addParticleStartingAt( Vec3f WorldPoint );
+	void clearSources() { sources->clear(); }
 
 
 
@@ -88,7 +90,7 @@ protected:
 	/** General state variables **/
 	bool simulate;						// flag for simulation mode
 	bool dirty;							// flag for updating ui (don't worry about this)
-
+	std::vector<Vec3f> *sources;
 };
 
 

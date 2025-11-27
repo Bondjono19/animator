@@ -9,10 +9,15 @@
 #include "modelerdraw.h"
 #include "modelerglobals.h"
 #include "particleSystem.h"
+#include "mat.h"
+#include "vec.h"
+#include <vector>
 
 
+#include <GL/gl.h>
 #include <FL/gl.h>
 #include <stdlib.h>
+
 
 #define M_DEFAULT 2.0f
 #define M_OFFSET 3.0f
@@ -38,14 +43,37 @@ ModelerView* createRobotArm(int x, int y, int w, int h, char* label)
 	return new RobotArm(x, y, w, h, label);
 }
 
-// We are going to override (is that the right word?) the draw()
-// method of ModelerView to draw out RobotArm
+ParticleSystem *ps = new ParticleSystem();
+
+Mat4f getModelViewMatrix()
+{
+        GLfloat m[16];
+        glGetFloatv(GL_MODELVIEW_MATRIX, m);
+        Mat4f matMV(m[0], m[1], m[2], m[3],
+            m[4], m[5], m[6], m[7],
+            m[8], m[9], m[10], m[11],
+            m[12], m[13], m[14], m[15] );
+
+        return matMV.transpose(); // convert to row major
+}
+
+void SpawnParticles( Mat4f CameraTransforms )
+{
+	Mat4f WorldMatrix =  CameraTransforms.inverse() * getModelViewMatrix();
+	Vec3f WorldPoint = Vec3f(WorldMatrix[0][3], WorldMatrix[1][3], WorldMatrix[2][3]);
+	ps->addParticleStartingAt(WorldPoint);
+	//std::cout << "Spawn at: " << WorldPoint[0] << ", " << WorldPoint[1] << ", " << WorldPoint[2] << ", " << WorldPoint[3] << std::endl;
+}
+
 void RobotArm::draw()
 {
     // This call takes care of a lot of the nasty projection 
     // matrix stuff.  Unless you want to fudge directly with the 
 	// projection matrix, don't bother with this ...
     ModelerView::draw();
+
+	Mat4f CameraTransforms = getModelViewMatrix();
+	ps->clearSources();
 
 	// draw the floor
 	setAmbientColor(.1f,.1f,.1f);
@@ -111,6 +139,9 @@ void RobotArm::draw()
 				glTranslated(0, 0, 0.5);
 				glScaled(0.4,0.4,0.4);
 				drawStar(1,0.3);
+
+				SpawnParticles(CameraTransforms);
+
 				glPopMatrix();
 
 			glPopMatrix();
@@ -153,6 +184,9 @@ void RobotArm::draw()
 						drawBox(0.2, 0.1, 0.05);
 						glTranslated(0, 0, -0.05);
 						drawBox(0.2, 0.1, 0.05);
+
+						SpawnParticles(CameraTransforms);
+
 						glPushMatrix();
 							//draw fingers
 							if(VAL(WAVE)!=0){
@@ -241,7 +275,7 @@ int main()
 	// You should create a ParticleSystem object ps here and then
 	// call ModelerApplication::Instance()->SetParticleSystem(ps)
 	// to hook it up to the animator interface.
-
+	ModelerApplication::Instance()->SetParticleSystem(ps);
 	ModelerApplication::Instance()->Init(&createRobotArm, controls, NUMCONTROLS);
 
 	return ModelerApplication::Instance()->Run();

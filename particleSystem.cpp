@@ -8,20 +8,40 @@
 #include <assert.h>
 #include <math.h>
 #include <limits.h>
+#include "particle.h"
+#include <array>
 
+#include <unordered_map>
+#include <FL/gl.h>
+
+// particles
+std::array<Particle, 100> particles;
+
+//baked particles data structure
+std::unordered_map<float, std::array<Particle, 100>> bakedParticles;
 
 /***************
  * Constructors
  ***************/
 
-ParticleSystem::ParticleSystem() 
+ParticleSystem::ParticleSystem()
 {
-	// TODO
 
+	// fill particles vector with initial particles
+	sources = new std::vector<Vec3f>();
+
+	bake_fps = 30.0f;
+	bake_start_time = 0.0f;
+	bake_end_time = 0.0f;
+	simulate = false;
+	dirty = false;
 }
 
 
-
+void ParticleSystem::addParticleStartingAt( Vec3f WorldPoint ) {
+	sources->push_back( WorldPoint );
+	//std::cout << "Number of sources: " << sources->size() << std::endl;
+}
 
 
 /*************
@@ -43,7 +63,22 @@ ParticleSystem::~ParticleSystem()
 void ParticleSystem::startSimulation(float t)
 {
     
-	// TODO
+	int i = 0;
+	std::cout << "num sources: " << sources->size() << std::endl;
+
+	for (int i = 0; i < particles.size(); ++i) {
+		Particle& p = particles[i];
+		Vec3f s = (*sources)[i % sources->size()];
+		p.x = s[0];
+		p.y = s[1];
+		p.z = s[2];
+		std::cout << "source: " << s[0] << ", " << s[1] << ", " << s[2] << std::endl;
+
+		p.vx = ((float)rand() / RAND_MAX - 0.5f) * 2.0f;
+		p.vy = ((float)rand() / RAND_MAX) * 5.0f + 5.0f;
+		p.vz = ((float)rand() / RAND_MAX - 0.5f) * 2.0f;
+	}
+
 
 	// These values are used by the UI ...
 	// -ve bake_end_time indicates that simulation
@@ -54,6 +89,8 @@ void ParticleSystem::startSimulation(float t)
 	bake_end_time = -1;
 	simulate = true;
 	dirty = true;
+	bake_start_time = t;
+	//clearBaked();
 
 }
 
@@ -66,6 +103,7 @@ void ParticleSystem::stopSimulation(float t)
 	// These values are used by the UI
 	simulate = false;
 	dirty = true;
+	bake_end_time = t;
 
 }
 
@@ -73,8 +111,18 @@ void ParticleSystem::stopSimulation(float t)
 void ParticleSystem::resetSimulation(float t)
 {
     
-	// TODO
+	int i = 0;
 
+	for (int i = 0; i < particles.size(); ++i) {
+		Particle& p = particles[i];
+		Vec3f s = (*sources)[i % sources->size()];
+		p.x = s[0];
+		p.y = s[1];
+		p.z = s[2];
+		p.vx = ((float)rand() / RAND_MAX - 0.5f) * 2.0f;
+		p.vy = ((float)rand() / RAND_MAX) * 5.0f + 5.0f;
+		p.vz = ((float)rand() / RAND_MAX - 0.5f) * 2.0f;
+	}
 	// These values are used by the UI
 	simulate = false;
 	dirty = true;
@@ -84,16 +132,46 @@ void ParticleSystem::resetSimulation(float t)
 /** Compute forces and update particles **/
 void ParticleSystem::computeForcesAndUpdateParticles(float t)
 {
+	if(simulate && bakedParticles.find(t) == bakedParticles.end()){
+		float timestep = 1 / bake_fps;
+		for (int i = 0; i < 100; ++i)
+		{
+			Particle &p = particles[i];
 
-	// TODO
+			//drag
+			/*
+			p.vx -= p.vx * p.vx * 0.1f * timestep ? p.vx >= 0 : p.vx * p.vx * -0.1f * timestep;
+			p.vy -= p.vy * p.vy * 0.1f * timestep ? p.vy >= 0 : p.vy * p.vy * -0.1f * timestep;
+			p.vz -= p.vz * p.vz * 0.1f * timestep ? p.vz >= 0 : p.vz * p.vz * -0.1f * timestep;
+			*/
+
+			p.vy -= 9.81f * timestep; // gravity
+
+			p.x += p.vx * timestep;
+			
+			if (p.y < 0.0f) {
+				p.y = 0.0f;
+				p.vy = -p.vy * 0.6f; // some energy loss on bounce
+			}
+			
+			p.y += p.vy * timestep;
+			p.z += p.vz * timestep;
+		}
+		bakeParticles(t);
+	}
 }
 
 
 /** Render particles */
 void ParticleSystem::drawParticles(float t)
 {
-
-	// TODO
+	for (int i = 0; i < 100; ++i) {
+		Particle& p = bakedParticles[t][i];
+		glPushMatrix();
+		glTranslated(p.x, p.y, p.z);
+		p.draw();
+		glPopMatrix();
+	}
 }
 
 
@@ -104,15 +182,15 @@ void ParticleSystem::drawParticles(float t)
   * your data structure for storing baked particles **/
 void ParticleSystem::bakeParticles(float t) 
 {
+	bakedParticles[t] = particles;
 
-	// TODO
 }
 
 /** Clears out your data structure of baked particles */
 void ParticleSystem::clearBaked()
 {
-
-	// TODO
+	resetSimulation(0.0f);
+	bakedParticles.clear();
 }
 
 
