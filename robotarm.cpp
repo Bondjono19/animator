@@ -243,6 +243,8 @@ void RobotArm::draw()
 		
 	glPopMatrix();
 
+	endDraw();
+
 }
 
 int main()
